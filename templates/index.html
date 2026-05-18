@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto ETL Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>Crypto Market Dashboard</h1>
+            <p class="subtitle">Top 50 cryptocurrencies by market cap</p>
+        </div>
+        <button id="run-btn" onclick="runPipeline()">Run Pipeline</button>
+    </div>
+
+    <div id="status-msg"></div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Coin</th>
+                    <th>Symbol</th>
+                    <th>Price (USD)</th>
+                    <th>Market Cap</th>
+                    <th>Volume (24h)</th>
+                    <th>Change (24h)</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Jinja2 loop — Flask fills this in server-side -->
+                {% for coin in coins %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td class="coin-name">{{ coin.name }}</td>
+                    <td class="symbol">{{ coin.symbol | upper }}</td>
+                    <td>${{ "{:,.2f}".format(coin.current_price) }}</td>
+                    <td>${{ "{:,.0f}".format(coin.market_cap) }}</td>
+                    <td>${{ "{:,.0f}".format(coin.total_volume) }}</td>
+                    <td class="{{ 'positive' if coin.price_changes_in_24h >= 0 else 'negative' }}">
+                        {{ "{:.2f}".format(coin.price_changes_in_24h) }}%
+                    </td>
+                    <td class="timestamp">{{ coin.last_updated }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function runPipeline() {
+            const btn = document.getElementById("run-btn");
+            const msg = document.getElementById("status-msg");
+
+            btn.disabled = true;
+            btn.textContent = "Running...";
+            msg.textContent = "";
+            msg.className = "";
+
+            try {
+                const response = await fetch("/run-pipeline", { method: "POST" });
+                const data = await response.json();
+
+                if (data.status === "success") {
+                    msg.textContent = "Pipeline ran successfully. Refresh to see new data.";
+                    msg.className = "msg-success";
+                } else {
+                    msg.textContent = "Pipeline failed. Check your terminal logs.";
+                    msg.className = "msg-error";
+                }
+            } catch (err) {
+                msg.textContent = "Could not reach the server.";
+                msg.className = "msg-error";
+            }
+
+            btn.disabled = false;
+            btn.textContent = "Run Pipeline";
+        }
+    </script>
+
+</body>
+</html>
